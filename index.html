@@ -401,6 +401,15 @@ footer .mega i{font-style:normal;color:transparent;-webkit-text-stroke:2.5px var
 .mq-wrap{transform:rotate(-1.2deg) scale(1.04)}
 #hero h1{transform:skewX(-3deg)}
 
+/* ===== RACE WEEK / 领跑金标 ===== */
+#raceweek{position:fixed;left:34px;bottom:30px;z-index:75;background:var(--red);color:#fff;padding:13px 22px;display:none;align-items:center;gap:12px;font-family:var(--disp);font-size:17px;letter-spacing:.04em;box-shadow:8px 8px 0 rgba(16,16,20,.22);transform:rotate(-2deg)}
+#raceweek.on{display:flex}
+#raceweek i{width:9px;height:9px;border-radius:50%;background:#fff;animation:blink 1s infinite}
+.wx-where{font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:#aaa;margin-top:10px}
+.red-block .leader-tag{display:none;position:absolute;top:-14px;right:22px;background:#FFD300;color:#101010;font-family:var(--disp);font-size:14px;padding:6px 14px;transform:rotate(2deg);box-shadow:4px 4px 0 rgba(0,0,0,.25);z-index:2}
+.red-block.leader .leader-tag{display:block;animation:tagpop .5s cubic-bezier(.22,1.4,.36,1)}
+@keyframes tagpop{from{transform:rotate(2deg) scale(.4);opacity:0}}
+
 /* ===== 降低动态偏好 ===== */
 @media (prefers-reduced-motion: reduce){
  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0s!important}
@@ -474,6 +483,13 @@ body.vittoria #vittoria{transform:none}
 .wm-legend .wm-home-i{background:var(--ink);box-shadow:0 0 0 2px var(--red)}
 @media(max-width:700px){.wm-legend{display:none}}
 
+/* ===== 赛道天气 ===== */
+.wx-card{min-height:0}
+.wx-main{display:flex;align-items:baseline;gap:16px;margin-top:4px}
+.wx-temp{font-family:var(--disp);font-size:clamp(44px,5vw,64px);line-height:1}
+.wx-cond{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:#888;line-height:1.8}
+.wx-rows{display:flex;gap:16px;margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:#777;flex-wrap:wrap}
+.wx-src{margin-left:auto;color:#aaa}
 footer{background:var(--ink);color:#fff;padding:12vh 7vw 6vh;margin-top:6vh}
 footer .mega{font-family:var(--disp);font-size:clamp(48px,9vw,120px);line-height:.95;text-transform:uppercase}
 footer .mega i{font-style:normal;color:var(--red)}
@@ -499,6 +515,7 @@ footer .ft b{color:#fff;font-weight:400}
 <body>
 <div id="cur-dot"></div><div id="cur-ring"></div>
 <div id="redline"></div>
+<div id="raceweek"><i></i>IT'S RACE WEEK · 比赛周</div>
 <div id="progress"><i></i></div>
 <div class="veil" id="veil"></div>
 <div class="veil2" id="veil2"></div>
@@ -596,11 +613,19 @@ footer .ft b{color:#fff;font-weight:400}
       <div class="stat"><div class="k" data-i18n="languages">LANGUAGES</div><div class="v"><span data-cnt="3">0</span></div></div>
     </div>
     <div class="sright">
-      <div class="red-block rv" data-slice="paper"><div class="v">F1 / KART</div><span class="go">↗</span><div class="sub">SCUDERIA FERRARI — N°36</div><div class="lec-line">LECLERC 2026 — <b id="lecPos">P—</b> · <b id="lecPts">— PTS</b></div></div>
+      <div class="red-block rv" data-slice="paper"><div class="v">F1 / KART</div><span class="go">↗</span><div class="sub">SCUDERIA FERRARI — N°36</div><div class="lec-line">LECLERC 2026 — <b id="lecPos">P—</b> · <b id="lecPts">— PTS</b></div>
+  <span class="leader-tag">P1 · CHAMPIONSHIP LEADER</span></div>
       <div class="scard spirit-mini rv" data-tilt style="min-height:0">
         <div class="idx">03 / SPIRIT</div>
         <div class="dot"></div>
         <p data-i18n="mini_p">FRENCH &amp; CHINESE<br>SPIRIT</p>
+      </div>
+      <div class="scard wx-card rv" data-tilt>
+        <div class="idx">04 / WEATHER</div>
+        <div class="cap">TRACK CONDITIONS — 赛道状况</div>
+        <div class="wx-where" id="wxWhere">YOUR LOCATION · 当地实况</div>
+        <div class="wx-main"><span class="wx-temp" id="wxTemp">--°</span><span class="wx-cond" id="wxCond">LOADING…</span></div>
+        <div class="wx-rows"><span id="wxHum">—</span><span id="wxWind">—</span><span class="wx-src">VIA WTTR.IN</span></div>
       </div>
     </div>
   </div>
@@ -1231,24 +1256,41 @@ const NE_LIST_ID='18395252408';
       return t.map(sg=>({id:sg.id||null,url:null,t:sg.name||'UNTITLED',a:(sg.artists||sg.ar||[]).map(x=>x.name).join(' / ')||'NETEASE CLOUD',du:fmtDu(Math.round((sg.duration||sg.dt||0)/1000))}));
     return null;
   }
-  const SRCS=[
-    id=>'https://api.injahow.cn/meting/?type=playlist&id='+id,
-    id=>'https://api.allorigins.win/raw?url='+encodeURIComponent('https://music.163.com/api/playlist/detail?id='+id),
-    id=>'https://corsproxy.io/?url='+encodeURIComponent('https://music.163.com/api/playlist/detail?id='+id)
-  ];
   (async()=>{
-    for(const src of SRCS){
-      try{
-        const r=await Promise.race([
-          fetch(src(NE_LIST_ID)),
-          new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),4000))
-        ]);
-        if(!r.ok){console.warn('[sound] HTTP',r.status,src(''));continue;}
-        const tracks=toTracks(JSON.parse(await r.text()));
-        if(tracks){applyList(tracks);return;}
-        console.warn('[sound] empty payload',src(''));
-      }catch(e){console.warn('[sound] failed',src(''),e.message);}
+    let best=null;
+    const better=c=>{if(c&&(!best||c.length>best.length))best=c;};
+    try{
+      const r=await Promise.race([fetch('https://api.injahow.cn/meting/?type=playlist&id='+NE_LIST_ID),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),6000))]);
+      if(r.ok)better(toTracks(JSON.parse(await r.text())));
+    }catch(e){console.warn('[sound] meting fail',e.message);}
+    try{
+      const r=await Promise.race([fetch('https://163api.qijieya.cn/playlist/detail?id='+NE_LIST_ID),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),6000))]);
+      const d=await r.json();
+      const ids=((d.playlist||{}).trackIds||[]).map(t=>t.id);
+      if(ids.length){
+        const r2=await Promise.race([fetch('https://163api.qijieya.cn/song/detail?ids='+ids.slice(0,500).join(',')),
+          new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000))]);
+        const d2=await r2.json();
+        const songs=d2.songs||[];
+        if(songs.length)better(songs.map(sg=>({id:sg.id,url:null,
+          t:sg.name||'UNTITLED',
+          a:(sg.ar||[]).map(xx=>xx.name).join(' / ')||'NETEASE CLOUD',
+          du:fmtDu(Math.round((sg.dt||0)/1000))})));
+      }
+    }catch(e){console.warn('[sound] qijieya fail',e.message);}
+    if(!best){
+      for(const px of [u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+                       u=>'https://corsproxy.io/?url='+encodeURIComponent(u)]){
+        try{
+          const r=await Promise.race([fetch(px('https://music.163.com/api/playlist/detail?id='+NE_LIST_ID)),
+            new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))]);
+          if(r.ok){better(toTracks(JSON.parse(await r.text())));if(best)break;}
+        }catch(e){}
+      }
     }
+    if(best&&best.length){applyList(best);tickNR();loadWX();return;}
     if(cnt)cnt.textContent=I18N[L].offline;
   })();
 })();
@@ -1280,6 +1322,7 @@ const RACES=[
  ['QATAR GP','LUSAIL','2026-11-08T18:00:00+03:00'],
  ['ABU DHABI GP','YAS MARINA','2026-11-22T17:00:00+04:00']];
 let NR_LIST=null;
+let NR_CUR=null;
 function tickNR(){
   const now=Date.now();let cur=null;
   const list=NR_LIST||RACES.map(r=>({gp:r[0],cir:r[1],t:new Date(r[2]).getTime()}));
@@ -1287,12 +1330,18 @@ function tickNR(){
   const D=document.getElementById('nrD'),H=document.getElementById('nrH'),
         M=document.getElementById('nrM'),Sc=document.getElementById('nrS');
   if(!cur){
+    NR_CUR=null;
+    const rw0=document.getElementById('raceweek');if(rw0)rw0.classList.remove('on');
     document.getElementById('nrGp').textContent='SEE YOU NEXT SEASON';
     document.getElementById('nrCir').textContent='AUSTRALIA · MARCH 2027';
     D.textContent=H.textContent=M.textContent=Sc.textContent='00';return;
   }
+  /* 上方 NR_CUR 赋值与徽章逻辑在 cur 存在时执行 */
+  NR_CUR=cur;
   document.getElementById('nrGp').textContent=cur.gp;
   document.getElementById('nrCir').textContent=cur.cir;
+  const rw=document.getElementById('raceweek');
+  if(rw)rw.classList.toggle('on',cur.t-now<3*864e5);
   let ms=cur.t-now;
   const d=Math.floor(ms/864e5);ms-=d*864e5;
   const h=Math.floor(ms/36e5);ms-=h*36e5;
@@ -1563,6 +1612,8 @@ async function loadF1(){
     if(drv){
       document.getElementById('lecPos').textContent='P'+drv.position;
       document.getElementById('lecPts').textContent=drv.points+' PTS';
+      const rb=document.querySelector('.red-block');
+      if(rb)rb.classList.toggle('leader',String(drv.position)==='1');
     }
   }catch(e){}
 }
@@ -1609,6 +1660,41 @@ function drawWM(){
 }
 addEventListener('resize',drawWM);
 setTimeout(drawWM,300);
+
+/* ===== 赛道天气 ===== */
+const CIR_CITY=[['ALBERT PARK','Melbourne'],['SHANGHAI','Shanghai'],['SUZUKA','Suzuka'],
+ ['SAKHIR','Manama'],['JEDDAH','Jeddah'],['MIAMI','Miami'],['IMOLA','Imola'],
+ ['MONTE CARLO','Monaco'],['BARCELONA','Barcelona'],['MONTREAL','Montreal'],
+ ['SPIELBERG','Spielberg,Austria'],['SILVERSTONE','Northampton,UK'],
+ ['SPA-FRANCORCHAMPS','Spa,Belgium'],['HUNGARORING','Budapest'],['ZANDVOORT','Zandvoort'],
+ ['MONZA','Monza,Italy'],['BAKU','Baku'],['MARINA BAY','Singapore'],
+ ['AMERICAS','Austin'],['HERMANOS','Mexico City'],['INTERLAGOS','Sao Paulo'],
+ ['VEGAS','Las Vegas'],['LUSAIL','Doha'],['YAS MARINA','Abu Dhabi']];
+async function loadWX(){
+  try{
+    let url='https://wttr.in/?format=j1',where='YOUR LOCATION · 当地实况';
+    if(window.NR_CUR&&NR_CUR.t-Date.now()<3*864e5){
+      const hit=CIR_CITY.find(p=>NR_CUR.cir.toUpperCase().indexOf(p[0])>=0);
+      if(hit){url='https://wttr.in/'+encodeURIComponent(hit[1])+'?format=j1';
+        where='AT THE TRACK · '+hit[1].toUpperCase()+' · 赛道实况';}
+    }
+    const r=await fetch(url);
+    const d=await r.json();
+    const c=(d.current_condition||[])[0];
+    if(!c)return;
+    const cond=(c.weatherDesc&&c.weatherDesc[0]&&c.weatherDesc[0].value)||'UNKNOWN';
+    const zh={'Sunny':'晴','Clear':'晴','Partly cloudy':'多云','Partly Cloudy':'多云','Cloudy':'阴','Overcast':'阴','Mist':'薄雾','Fog':'雾','Freezing fog':'冻雾','Patchy rain possible':'局部有雨','Patchy light drizzle':'毛毛雨','Patchy light rain':'零星小雨','Light rain':'小雨','Light rain shower':'小阵雨','Moderate rain':'中雨','Moderate rain at times':'间歇中雨','Moderate or heavy rain shower':'阵雨','Heavy rain':'大雨','Torrential rain':'暴雨','Thunderstorm':'雷暴','Patchy light rain with thunder':'雷阵雨','Patchy snow possible':'局部有雪','Patchy light snow':'零星小雪','Light snow':'小雪','Light snow showers':'小阵雪','Moderate snow':'中雪','Heavy snow':'大雪','Blizzard':'暴风雪','Light sleet':'雨夹雪','Ice pellets':'冰粒'};
+    const el=document.getElementById('wxCond');
+    el.textContent=cond.toUpperCase()+(zh[cond]?' · '+zh[cond]:'');
+    const wEl=document.getElementById('wxWhere');if(wEl)wEl.textContent=where;
+    document.getElementById('wxTemp').textContent=c.temp_C+'°';
+    document.getElementById('wxHum').textContent='HUMIDITY '+c.humidity+'%';
+    document.getElementById('wxWind').textContent='WIND '+c.windspeedKmph+' KM/H';
+  }catch(e){
+    document.getElementById('wxCond').textContent='SIGNAL LOST · 信号丢失';
+  }
+}
+loadWX();
 
 /* 迷你播放条逻辑 */
 function syncMini(){
